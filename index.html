@@ -46,9 +46,17 @@ main{max-width:1100px;margin:0 auto;padding:6px 12px 30px}
 .price{font-family:'Cormorant Garamond',serif;font-weight:500;font-size:22px}
 .empty{text-align:center;color:var(--grey);font-size:13px;padding:40px 0;grid-column:1/-1}
 footer{text-align:center;font-size:10px;color:var(--grey);padding:10px 16px 30px;line-height:1.6}
+#lock{position:fixed;inset:0;z-index:50;background:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;padding:24px;text-align:center}
+#lock .msg{font-size:11px;letter-spacing:.25em;color:var(--grey)}
+#lock input{font:500 22px 'Montserrat';letter-spacing:.5em;text-align:center;width:180px;border:1px solid var(--line);border-radius:10px;padding:10px 0 10px .5em}
+#lock button{border:0;background:var(--ink);color:#fff;font:500 11px 'Montserrat';letter-spacing:.25em;padding:12px 28px;border-radius:999px;cursor:pointer}
+#lock .err{font-size:12px;color:var(--ko);min-height:16px}
 </style>
 </head>
 <body>
+<div id="lock"><div class="logo">UDM</div><div class="sub">COUTURE</div><div class="msg" style="margin-top:18px">ESPACE PRIVÉ</div>
+<input id="code" type="password" inputmode="numeric" maxlength="8" autocomplete="off" placeholder="••••">
+<button id="go">ENTRER</button><div class="err" id="err"></div></div>
 <header>
   <div class="logo">UDM</div>
   <div class="sub">COUTURE</div>
@@ -150,11 +158,23 @@ document.querySelectorAll(".tab").forEach(t=>t.onclick=()=>{tab=t.dataset.t;try{
 document.getElementById("date").onchange=e=>{fDate=e.target.value;render();};
 document.getElementById("clear").onclick=()=>{fDate="";document.getElementById("date").value="";render();};
 
+const HASH="ef7ae46fa2bc0430d236e2cab23b7b780ffe601462545a95f21d1b1762bcd0dd";
+async function sha(t){const b=await crypto.subtle.digest("SHA-256",new TextEncoder().encode(t));return [...new Uint8Array(b)].map(x=>x.toString(16).padStart(2,"0")).join("");}
+function load(){
 Promise.all([
   fetch("catalogue.json",{cache:"no-store"}).then(r=>r.json()),
   fetch("reservations.json",{cache:"no-store"}).then(r=>r.json()).catch(()=>({reservations:[]}))
 ]).then(([cat,res])=>{CAT=cat;RES=res.reservations||[];MAJ=res.maj||null;render();})
   .catch(()=>{document.getElementById("grid").innerHTML='<p class="empty">Impossible de charger le catalogue. Rechargez la page.</p>';});
+}
+async function tryCode(c,silent){
+  let ok=false;try{ok=(await sha(c+"udm"))===HASH;}catch(e){}
+  if(ok){try{localStorage.setItem("udm_code",c)}catch(e){} document.getElementById("lock").remove(); load();}
+  else if(!silent){document.getElementById("err").textContent="Code incorrect";}
+}
+document.getElementById("go").onclick=()=>tryCode(document.getElementById("code").value.trim());
+document.getElementById("code").onkeydown=e=>{if(e.key==="Enter")tryCode(e.target.value.trim());};
+try{const c=localStorage.getItem("udm_code"); if(c) tryCode(c,true);}catch(e){}
 </script>
 </body>
 </html>

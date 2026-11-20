@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>UDM Couture — Catalogue robes</title>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500&family=Montserrat:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{--ink:#1a1a1a;--grey:#8c8c8c;--line:#e3e3e3;--soft:#f7f6f4;--ok:#2f7a4f;--ko:#a33a3a}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:#fff;color:var(--ink);font-family:'Montserrat',sans-serif;-webkit-font-smoothing:antialiased}
+header{text-align:center;padding:26px 16px 10px}
+.logo{font-family:'Cormorant Garamond',serif;font-size:30px;letter-spacing:.45em;padding-left:.45em}
+.sub{display:flex;align-items:center;justify-content:center;gap:10px;font-size:9px;letter-spacing:.4em;margin-top:2px}
+.sub::before,.sub::after{content:"";width:28px;height:1px;background:var(--ink)}
+.tabs{display:flex;justify-content:center;gap:0;margin:16px auto 0;border:1px solid var(--ink);border-radius:999px;width:max-content;overflow:hidden}
+.tab{border:0;background:#fff;color:var(--ink);font:500 11px 'Montserrat',sans-serif;letter-spacing:.25em;padding:9px 20px;cursor:pointer}
+.tab.on{background:var(--ink);color:#fff}
+.filters{position:sticky;top:0;z-index:5;background:rgba(255,255,255,.97);backdrop-filter:blur(6px);border-bottom:1px solid var(--line);padding:10px 12px 12px}
+.label{font-size:9px;letter-spacing:.3em;color:var(--grey);margin:6px 2px}
+.daterow{display:flex;gap:8px;align-items:center}
+input[type=date]{font:500 14px 'Montserrat',sans-serif;border:1px solid var(--line);border-radius:10px;padding:8px 10px;color:var(--ink);background:#fff;flex:1;min-width:0}
+.clear{border:1px solid var(--line);background:#fff;border-radius:10px;padding:9px 12px;font:500 12px 'Montserrat';cursor:pointer}
+.row{display:flex;gap:8px;overflow-x:auto;scrollbar-width:none;padding-bottom:2px}
+.row::-webkit-scrollbar{display:none}
+.chip{flex:none;border:1px solid var(--line);background:#fff;color:var(--ink);font:500 12px 'Montserrat',sans-serif;padding:8px 14px;border-radius:999px;cursor:pointer}
+.chip.on{background:var(--ink);color:#fff;border-color:var(--ink)}
+.count{font-size:11px;color:var(--grey);text-align:center;padding:12px 8px 4px;line-height:1.6}
+.count b{color:var(--ink);font-weight:500}
+main{max-width:1100px;margin:0 auto;padding:6px 12px 30px}
+.grid{display:grid;grid-template-columns:repeat(2,1fr);gap:14px}
+@media(min-width:700px){.grid{grid-template-columns:repeat(3,1fr)}}
+@media(min-width:1000px){.grid{grid-template-columns:repeat(4,1fr)}}
+.ph{position:relative;aspect-ratio:3/4;background:var(--soft);overflow:hidden;border-radius:4px}
+.ph img{width:100%;height:100%;object-fit:cover;object-position:center 20%;display:block}
+.card.off .ph img{filter:grayscale(1) brightness(1.08);opacity:.55}
+.badge{position:absolute;left:8px;right:8px;bottom:8px;text-align:center;font-size:10px;letter-spacing:.12em;font-weight:500;padding:7px 4px;border-radius:4px;background:rgba(163,58,58,.92);color:#fff}
+.badge.ok{background:rgba(47,122,79,.9)}
+.meta{text-align:center;padding:9px 2px 0}
+.num{font-family:'Cormorant Garamond',serif;font-size:20px}
+.style{font-size:9px;letter-spacing:.2em;color:var(--grey);margin-top:2px}
+.sizes{display:flex;flex-wrap:wrap;justify-content:center;gap:5px;margin:8px 0 6px}
+.size{font-size:11px;border:1px solid var(--line);padding:3px 8px;border-radius:4px}
+.size.hit{border-color:var(--ink);background:var(--ink);color:#fff}
+.size.ko{border-color:var(--ko);color:var(--ko);text-decoration:line-through}
+.price{font-family:'Cormorant Garamond',serif;font-weight:500;font-size:22px}
+.empty{text-align:center;color:var(--grey);font-size:13px;padding:40px 0;grid-column:1/-1}
+footer{text-align:center;font-size:10px;color:var(--grey);padding:10px 16px 30px;line-height:1.6}
+</style>
+</head>
+<body>
+<header>
+  <div class="logo">UDM</div>
+  <div class="sub">COUTURE</div>
+  <div class="tabs"><button class="tab on" data-t="robes">ROBES</button><button class="tab" data-t="couronnes">COURONNES</button></div>
+</header>
+
+<div class="filters">
+  <div class="label">DATE DU MARIAGE</div>
+  <div class="daterow"><input type="date" id="date"><button class="clear" id="clear">Effacer</button></div>
+  <div id="robeFilters">
+    <div class="label">STYLE</div><div class="row" id="styles"></div>
+    <div class="label">TAILLE</div><div class="row" id="sizes"></div>
+  </div>
+</div>
+
+<main>
+  <div class="count" id="count"></div>
+  <div class="grid" id="grid"></div>
+</main>
+<footer id="maj"></footer>
+
+<script>
+const STYLES=["Tous","Princesse","Trapèze","Sirène","Cape"];
+let CAT={robes:[],couronnes:[]}, RES=[], MAJ=null;
+let tab="robes", fStyle="Tous", fTaille="Toutes", fDate="";
+try{const h=location.hash.slice(1); if(h==="couronnes") tab="couronnes";}catch(e){}
+
+const norm=s=>(s||"").normalize("NFD").replace(/[̀-ͯ]/g,"").toLowerCase().trim();
+const addDays=(iso,n)=>{const d=new Date(iso+"T12:00:00");d.setDate(d.getDate()+n);return d.toISOString().slice(0,10)};
+const frDate=iso=>new Date(iso+"T12:00:00").toLocaleDateString("fr-FR",{day:"numeric",month:"long",year:"numeric"});
+
+// Période louée pour un mariage : du 2e jour avant au lendemain (jeudi → dimanche pour un samedi)
+function conflict(r){
+  if(!fDate) return false;
+  const du=addDays(fDate,-2), au=addDays(fDate,1);
+  return r.du<=au && du<=r.au;
+}
+function robeBusy(robe){return RES.some(r=>r.type==="robe"&&norm(r.nom)===norm(robe.nom)&&conflict(r));}
+function crownBusy(n){return RES.some(r=>r.type==="couronne"&&Number(r.num)===n&&conflict(r));}
+
+function chips(el,list,get,set){
+  el.innerHTML="";
+  list.forEach(v=>{const b=document.createElement("button");b.className="chip"+(get()===v?" on":"");b.textContent=v;b.onclick=()=>{set(v);render();};el.appendChild(b);});
+}
+
+function render(){
+  document.querySelectorAll(".tab").forEach(t=>t.classList.toggle("on",t.dataset.t===tab));
+  document.getElementById("robeFilters").style.display=tab==="robes"?"":"none";
+  const g=document.getElementById("grid"); g.innerHTML="";
+  const cnt=document.getElementById("count");
+  const dateTxt=fDate?` pour le <b>${frDate(fDate)}</b>`:"";
+
+  if(tab==="robes"){
+    const tailles=["Toutes",...[...new Set(CAT.robes.flatMap(r=>r.tailles))].sort((a,b)=>a-b)];
+    chips(document.getElementById("styles"),STYLES,()=>fStyle,v=>fStyle=v);
+    chips(document.getElementById("sizes"),tailles,()=>fTaille,v=>fTaille=v);
+    const order=STYLES.slice(1);
+    let list=CAT.robes.filter(r=>fStyle==="Tous"||r.style===fStyle)
+      .filter(r=>fTaille==="Toutes"||r.tailles.includes(fTaille))
+      .map(r=>({...r,busy:robeBusy(r)}))
+      .sort((a,b)=>(a.busy-b.busy)||order.indexOf(a.style)-order.indexOf(b.style)||Math.min(...a.tailles)-Math.min(...b.tailles));
+    const dispo=list.filter(r=>!r.busy).length;
+    cnt.innerHTML=fDate?`<b>${dispo}</b> disponible${dispo>1?"s":""} sur ${list.length}${dateTxt}`:`${list.length} robe${list.length>1?"s":""} — choisissez une date pour voir les disponibilités`;
+    if(!list.length) g.innerHTML='<p class="empty">Aucune robe pour ce choix.</p>';
+    list.forEach(r=>{
+      const c=document.createElement("div");c.className="card"+(r.busy?" off":"");
+      const badge=fDate?(r.busy?'<div class="badge">INDISPONIBLE POUR CETTE DATE</div>':'<div class="badge ok">DISPONIBLE</div>'):"";
+      c.innerHTML=`<div class="ph"><img loading="lazy" src="${r.img}" alt="${r.nom}">${badge}</div>
+        <div class="meta"><div class="num">${r.nom}</div><div class="style">${r.style.toUpperCase()} · N° ${r.n}</div>
+        <div class="sizes">${r.tailles.map(t=>`<span class="size${t===fTaille?" hit":""}">${t}</span>`).join("")}</div>
+        <div class="price">${r.prix} €</div></div>`;
+      g.appendChild(c);
+    });
+  } else {
+    let list=CAT.couronnes.map(c=>{const ko=c.nums.filter(crownBusy);return {...c,ko,busy:ko.length===c.nums.length};})
+      .sort((a,b)=>(a.busy-b.busy)||a.id-b.id);
+    const total=CAT.couronnes.reduce((s,c)=>s+c.nums.length,0);
+    const koTot=list.reduce((s,c)=>s+c.ko.length,0);
+    cnt.innerHTML=fDate?`<b>${total-koTot}</b> couronnes disponibles sur ${total}${dateTxt}`:`${total} couronnes — choisissez une date pour voir les disponibilités`;
+    list.forEach(c=>{
+      const el=document.createElement("div");el.className="card"+(c.busy?" off":"");
+      let badge="";
+      if(fDate){
+        if(c.busy) badge='<div class="badge">INDISPONIBLE POUR CETTE DATE</div>';
+        else if(c.ko.length) badge=`<div class="badge">N° ${c.ko.join(", ")} INDISPONIBLE${c.ko.length>1?"S":""}</div>`;
+        else badge='<div class="badge ok">DISPONIBLE</div>';
+      }
+      el.innerHTML=`<div class="ph"><img loading="lazy" src="${c.img}" alt="Couronne ${c.label}">${badge}</div>
+        <div class="meta"><div class="num">N° ${c.label}</div><div class="style">COURONNE${c.nums.length>1?"S":""}</div>
+        ${c.nums.length>1&&fDate?`<div class="sizes">${c.nums.map(n=>`<span class="size${c.ko.includes(n)?" ko":""}">${n}</span>`).join("")}</div>`:'<div style="height:8px"></div>'}
+        <div class="price">${c.prix} €</div></div>`;
+      g.appendChild(el);
+    });
+  }
+  document.getElementById("maj").textContent=MAJ?`Disponibilités mises à jour le ${new Date(MAJ).toLocaleString("fr-FR",{day:"numeric",month:"long",hour:"2-digit",minute:"2-digit"})} (heure locale). Une robe louée est bloquée du jeudi au dimanche de son mariage.`:"";
+}
+
+document.querySelectorAll(".tab").forEach(t=>t.onclick=()=>{tab=t.dataset.t;try{history.replaceState(null,"","#"+tab)}catch(e){}render();});
+document.getElementById("date").onchange=e=>{fDate=e.target.value;render();};
+document.getElementById("clear").onclick=()=>{fDate="";document.getElementById("date").value="";render();};
+
+Promise.all([
+  fetch("catalogue.json",{cache:"no-store"}).then(r=>r.json()),
+  fetch("reservations.json",{cache:"no-store"}).then(r=>r.json()).catch(()=>({reservations:[]}))
+]).then(([cat,res])=>{CAT=cat;RES=res.reservations||[];MAJ=res.maj||null;render();})
+  .catch(()=>{document.getElementById("grid").innerHTML='<p class="empty">Impossible de charger le catalogue. Rechargez la page.</p>';});
+</script>
+</body>
+</html>

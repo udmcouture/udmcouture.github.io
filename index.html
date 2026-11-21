@@ -152,9 +152,9 @@ function render(){
       const c=document.createElement("div");c.className="card"+(v.busy?" off":"");
       const badge=fDate?(v.busy?'<div class="badge">INDISPONIBLE POUR CETTE DATE</div>':'<div class="badge ok">DISPONIBLE</div>'):"";
       c.innerHTML=`<div class="ph"><img loading="lazy" src="${v.img}" alt="Voile ${v.nom}" style="object-position:center"></div>${badge}
-        <div class="meta"><div class="num">${v.nom}</div><div class="style">VOILE ${v.longueur.toUpperCase()}</div>
+        <div class="meta"><div class="num">${v.nom}</div><div class="style">VOILE ${v.longueur.toUpperCase()} · N° ${v.n}</div>
         <div style="height:8px"></div>
-        ${v.prix!=null?`<div class="price">${v.prix} €</div>`:'<div class="style" style="padding:6px 0">PRIX À VENIR</div>'}</div>`;
+        <div class="price">${v.prix!=null?v.prix+" €":"—"}</div></div>`;
       g.appendChild(c);
     });
   } else {

@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>UDM Couture — Catalogue robes</title>
+<title>UDM Couture — Catalogue</title>
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500&family=Montserrat:wght@400;500&display=swap" rel="stylesheet">
 <style>
 :root{--ink:#1a1a1a;--grey:#8c8c8c;--line:#e3e3e3;--soft:#f7f6f4;--ok:#2f7a4f;--ko:#a33a3a}
@@ -61,7 +61,7 @@ footer{text-align:center;font-size:10px;color:var(--grey);padding:10px 16px 30px
 <header>
   <div class="logo">UDM</div>
   <div class="sub">COUTURE</div>
-  <div class="tabs"><button class="tab on" data-t="robes">ROBES</button><button class="tab" data-t="couronnes">COURONNES</button></div>
+  <div class="tabs"><button class="tab on" data-t="robes">ROBES</button><button class="tab" data-t="couronnes">COURONNES</button><button class="tab" data-t="voiles">VOILES</button></div>
 </header>
 
 <div class="filters">
@@ -70,6 +70,9 @@ footer{text-align:center;font-size:10px;color:var(--grey);padding:10px 16px 30px
   <div id="robeFilters">
     <div class="label">STYLE <span style="letter-spacing:0">(plusieurs choix possibles)</span></div><div class="row" id="styles"></div>
     <div class="label">TAILLE <span style="letter-spacing:0">(plusieurs choix possibles)</span></div><div class="row" id="sizes"></div>
+  </div>
+  <div id="voileFilters" style="display:none">
+    <div class="label">LONGUEUR</div><div class="row" id="longueurs"></div>
   </div>
 </div>
 
@@ -81,10 +84,10 @@ footer{text-align:center;font-size:10px;color:var(--grey);padding:10px 16px 30px
 
 <script>
 const STYLES=["Tous","Princesse","Trapèze","Sirène","Cape"];
-let CAT={robes:[],couronnes:[]}, RES=[], MAJ=null;
-let tab="robes", fStyles=new Set(), fTailles=new Set(), fDate="";
+let CAT={robes:[],couronnes:[],voiles:[]}, RES=[], MAJ=null;
+let tab="robes", fStyles=new Set(), fTailles=new Set(), fLong=new Set(), fDate="";
 const pairs=t=>{const a=[...t].sort((x,y)=>x-y);if(a.length===1)return [String(a[0])];const o=[];for(let i=0;i<a.length-1;i++)o.push(a[i]+"/"+a[i+1]);return o;};
-try{const h=location.hash.slice(1); if(h==="couronnes") tab="couronnes";}catch(e){}
+try{const h=location.hash.slice(1); if(h==="couronnes"||h==="voiles") tab=h;}catch(e){}
 
 const norm=s=>(s||"").normalize("NFD").replace(/[̀-ͯ]/g,"").toLowerCase().trim();
 const addDays=(iso,n)=>{const d=new Date(iso+"T12:00:00");d.setDate(d.getDate()+n);return d.toISOString().slice(0,10)};
@@ -98,6 +101,7 @@ function conflict(r){
 }
 function robeBusy(robe){return RES.some(r=>r.type==="robe"&&norm(r.nom)===norm(robe.nom)&&conflict(r));}
 function crownBusy(n){return RES.some(r=>r.type==="couronne"&&Number(r.num)===n&&conflict(r));}
+function voileBusy(v){return RES.some(r=>r.type==="voile"&&norm(r.nom)===norm(v.nom)&&conflict(r));}
 
 function chips(el,list,set,allLabel){
   el.innerHTML="";
@@ -110,6 +114,7 @@ function chips(el,list,set,allLabel){
 function render(){
   document.querySelectorAll(".tab").forEach(t=>t.classList.toggle("on",t.dataset.t===tab));
   document.getElementById("robeFilters").style.display=tab==="robes"?"":"none";
+  document.getElementById("voileFilters").style.display=tab==="voiles"?"":"none";
   const g=document.getElementById("grid"); g.innerHTML="";
   const cnt=document.getElementById("count");
   const dateTxt=fDate?` pour le <b>${frDate(fDate)}</b>`:"";
@@ -133,6 +138,23 @@ function render(){
         <div class="meta"><div class="num">${r.nom}</div><div class="style">${r.style.toUpperCase()} · N° ${r.n}</div>
         <div class="sizes">${pairs(r.tailles).map(t=>`<span class="size${fTailles.has(t)?" hit":""}">${t}</span>`).join("")}</div>
         <div class="price">${r.prix} €</div></div>`;
+      g.appendChild(c);
+    });
+  } else if(tab==="voiles"){
+    chips(document.getElementById("longueurs"),["Long","Court"],fLong,"Tous");
+    let list=(CAT.voiles||[]).filter(v=>fLong.size===0||fLong.has(v.longueur))
+      .map(v=>({...v,busy:voileBusy(v)}))
+      .sort((a,b)=>(b.busy-a.busy)||(a.longueur===b.longueur?0:a.longueur==="Long"?-1:1)||a.n-b.n);
+    const dispo=list.filter(v=>!v.busy).length, ko=list.length-dispo;
+    cnt.innerHTML=fDate?`<b>${dispo}</b> disponible${dispo>1?"s":""} · <b>${ko}</b> indisponible${ko>1?"s":""}${dateTxt}`:`${list.length} voile${list.length>1?"s":""} — choisissez une date pour voir les disponibilités`;
+    if(!list.length) g.innerHTML='<p class="empty">Aucun voile pour ce choix.</p>';
+    list.forEach(v=>{
+      const c=document.createElement("div");c.className="card"+(v.busy?" off":"");
+      const badge=fDate?(v.busy?'<div class="badge">INDISPONIBLE POUR CETTE DATE</div>':'<div class="badge ok">DISPONIBLE</div>'):"";
+      c.innerHTML=`<div class="ph"><img loading="lazy" src="${v.img}" alt="Voile ${v.nom}" style="object-position:center"></div>${badge}
+        <div class="meta"><div class="num">${v.nom}</div><div class="style">VOILE ${v.longueur.toUpperCase()}</div>
+        <div style="height:8px"></div>
+        ${v.prix!=null?`<div class="price">${v.prix} €</div>`:'<div class="style" style="padding:6px 0">PRIX À VENIR</div>'}</div>`;
       g.appendChild(c);
     });
   } else {

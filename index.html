@@ -70,6 +70,7 @@ footer{text-align:center;font-size:10px;color:var(--grey);padding:10px 16px 30px
   <div id="robeFilters">
     <div class="label">STYLE <span style="letter-spacing:0">(plusieurs choix possibles)</span></div><div class="row" id="styles"></div>
     <div class="label">TAILLE <span style="letter-spacing:0">(plusieurs choix possibles)</span></div><div class="row" id="sizes"></div>
+    <div class="label">PRIX <span style="letter-spacing:0">(plusieurs choix possibles)</span></div><div class="row" id="prices"></div>
   </div>
   <div id="voileFilters" style="display:none">
     <div class="label">LONGUEUR</div><div class="row" id="longueurs"></div>
@@ -85,7 +86,7 @@ footer{text-align:center;font-size:10px;color:var(--grey);padding:10px 16px 30px
 <script>
 const STYLES=["Tous","Princesse","Trapèze","Sirène","Cape"];
 let CAT={robes:[],couronnes:[],voiles:[]}, RES=[], MAJ=null;
-let tab="robes", fStyles=new Set(), fTailles=new Set(), fLong=new Set(), fDate="";
+let tab="robes", fStyles=new Set(), fTailles=new Set(), fPrix=new Set(), fLong=new Set(), fDate="";
 const pairs=t=>{const a=[...t].sort((x,y)=>x-y);if(a.length===1)return [String(a[0])];const o=[];for(let i=0;i<a.length-1;i++)o.push(a[i]+"/"+a[i+1]);return o;};
 try{const h=location.hash.slice(1); if(h==="couronnes"||h==="voiles") tab=h;}catch(e){}
 
@@ -123,9 +124,12 @@ function render(){
     const allPairs=[...new Set(CAT.robes.flatMap(r=>pairs(r.tailles)))].sort((x,y)=>parseInt(x)-parseInt(y));
     chips(document.getElementById("styles"),STYLES.slice(1),fStyles,"Tous");
     chips(document.getElementById("sizes"),allPairs,fTailles,"Toutes");
+    const allPrix=[...new Set(CAT.robes.map(r=>r.prix+" €"))].sort((a,b)=>parseInt(a)-parseInt(b));
+    chips(document.getElementById("prices"),allPrix,fPrix,"Tous");
     const order=STYLES.slice(1);
     let list=CAT.robes.filter(r=>fStyles.size===0||fStyles.has(r.style))
       .filter(r=>fTailles.size===0||pairs(r.tailles).some(p=>fTailles.has(p)))
+      .filter(r=>fPrix.size===0||fPrix.has(r.prix+" €"))
       .map(r=>({...r,busy:robeBusy(r)}))
       .sort((a,b)=>(b.busy-a.busy)||order.indexOf(a.style)-order.indexOf(b.style)||Math.min(...a.tailles)-Math.min(...b.tailles));
     const dispo=list.filter(r=>!r.busy).length, ko=list.length-dispo;
